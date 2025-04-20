@@ -333,12 +333,14 @@ int main(int, char**)
 #endif
 
     // Cleanup
-    ma_device_uninit(&device);
-
+    if (wrote_out_file) {
+        ma_device_uninit(&device);
+    }
+    
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-
+    
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
