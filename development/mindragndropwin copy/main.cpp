@@ -26,8 +26,6 @@
 HWND hwnd;
 bool isRunning;
 WNDCLASSEX windowClass;
-// std::wstring fName = L"C:\\Users\\miste\\Desktop\\miniaudio-loopback\\Makefile";
-std::wstring fName = L"C:\\Users\\miste\\Desktop\\miniaudio-loopback\\development\\mindragndropwin copy\\main.cpp";
 
 size_t to_narrow(const wchar_t *src, char *dest, size_t dest_len)
 {
@@ -60,39 +58,6 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
-	case WM_NOTIFY:
-	{
-		printf("wm_notify event\n");
-		auto pdi = (NMLVDISPINFO*) lParam;
-		auto nmlv = (NMLISTVIEW*) lParam;
-		switch (pdi->hdr.code)
-		{
-		case LVN_BEGINDRAG:
-			printf("begin drag\n");
-			IDataObject *pObj;
-			IDropSource *pSrc;
-			char* dest = new char[fName.length()];
-			to_narrow(LPWSTR(fName.c_str()), dest, fName.length());
-			pObj = (IDataObject*)GetFileUiObject(dest, IID_IDataObject);
-			if (!pObj)
-				break;
-
-			pSrc = CreateDropSource();
-			if (!pSrc)
-			{
-				IDataObject_Release(pObj);
-				break;
-			}
-
-			DWORD dwEffect;
-			DoDragDrop(pObj, pSrc, DROPEFFECT_COPY | DROPEFFECT_LINK, &dwEffect);
-
-			IDropSource_Release(pSrc);
-			IDataObject_Release(pObj);
-			printf("end drag event\n");
-			break;
-		}
-	}
 	case WM_CREATE:
 	{
 		isRunning = true;
@@ -107,22 +72,16 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_LBUTTONDOWN:
 	{
-		printf("button click\n");
 		IDataObject *pObj;
 		IDropSource *pSrc;
-		char* dest = new char[fName.length() + 1];
-		to_narrow(LPWSTR(fName.c_str()), dest, fName.length() + 1);
-		pObj = (IDataObject*)GetFileUiObject(dest, IID_IDataObject);
-		if (!pObj) {
-			printf(dest);
-			printf("no object\n");
+		char file_path[] = "C:\\Users\\miste\\Desktop\\miniaudio-loopback\\development\\mindragndropwin copy\\main.cpp";
+		pObj = (IDataObject*)GetFileUiObject(&file_path[0], IID_IDataObject);
+		if (!pObj)
 			break;
-		}
 
 		pSrc = CreateDropSource();
 		if (!pSrc)
 		{
-			printf("already released\n");
 			IDataObject_Release(pObj);
 			break;
 		}
@@ -132,7 +91,6 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		IDropSource_Release(pSrc);
 		IDataObject_Release(pObj);
-		printf("button event end\n");
 		break;
 	}
 	default:
@@ -200,22 +158,6 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp)
 
 	ShowWindow(hwnd, SW_SHOW);
 	UpdateWindow(hwnd);
-
-	// Button
-	HWND hwndButton = CreateWindow( 
-		"BUTTON",  // Predefined class; Unicode assumed 
-		"OK",      // Button text 
-		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-		10,         // x position 
-		10,         // y position 
-		100,        // Button width
-		100,        // Button height
-		hwnd,     // Parent window
-		NULL,       // No menu.
-		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
-		NULL);      // Pointer not needed.
-	ShowWindow(hwndButton, SW_SHOW);
-	UpdateWindow(hwndButton);
 
 	HRESULT oleResult = OleInitialize(NULL);
 	if(oleResult != S_OK)
