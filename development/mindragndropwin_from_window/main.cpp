@@ -74,7 +74,7 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		IDataObject *pObj;
 		IDropSource *pSrc;
-		char file_path[] = "C:\\Users\\miste\\Desktop\\miniaudio-loopback\\development\\mindragndropwin copy\\main.cpp";
+		char file_path[] = "C:\\Users\\miste\\Desktop\\miniaudio-loopback\\development\\mindragndropwin_from_window\\main.cpp";
 		pObj = (IDataObject*)GetFileUiObject(&file_path[0], IID_IDataObject);
 		if (!pObj)
 			break;
