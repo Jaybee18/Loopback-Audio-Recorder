@@ -13,8 +13,6 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 #include <stdio.h>
-#include <ShlObj.h>
-#include <filesystem>
 #include <chrono>
 #include <SDL.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -41,48 +39,6 @@ void WindowFullscreen() {
 
     // remove the style changes, because they should only apply to this window
     ImGui::PopStyleVar(2);
-}
-
-void CopyToClipboard(const char* path) {
-    HGLOBAL hGlobal = GlobalAlloc(GHND, sizeof(DROPFILES) + strlen(path) + 2);
-
-    if (!hGlobal)
-    return;
-
-    DROPFILES* dropfiles = (DROPFILES*)GlobalLock(hGlobal);
-
-    if (!dropfiles) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    dropfiles->pFiles = sizeof(DROPFILES);
-    dropfiles->fNC = TRUE;
-    dropfiles->fWide = FALSE;
-
-    memcpy(&dropfiles[1], path, strlen(path));
-
-    GlobalUnlock(hGlobal);
-
-    if (!OpenClipboard(NULL)) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    if (!EmptyClipboard()) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    if (!SetClipboardData(CF_HDROP, hGlobal)) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    GlobalFree(hGlobal);
-
-    CloseClipboard();
-    return;
 }
 
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
@@ -220,9 +176,6 @@ int main(int, char**)
 
     encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 44100);
 
-    std::filesystem::path file("out.wav");
-    std::filesystem::path out_file_path = std::filesystem::temp_directory_path() / file;
-
     // Main loop
     bool done = false;
 #ifdef __EMSCRIPTEN__
@@ -254,6 +207,8 @@ int main(int, char**)
             continue;
         }
 
+        const char* out_file_path = "out.wav";
+
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
@@ -268,11 +223,11 @@ int main(int, char**)
 
             ImGui::Begin("Hello, world!", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);                          // Create a window called "Hello, world!" and append into it.
 
-            ImGui::TextWrapped("Out file: %s", out_file_path.generic_string().c_str());
+            ImGui::TextWrapped("Out file: out.wav");
 
             if (ImGui::Button(is_recording ? "End recording" : "Start recording")) {
                 if (!is_recording) {
-                    if (ma_encoder_init_file(out_file_path.generic_string().c_str(), &encoderConfig, &encoder) != MA_SUCCESS) {
+                    if (ma_encoder_init_file(out_file_path, &encoderConfig, &encoder) != MA_SUCCESS) {
                         printf("Failed to initialize output file.\n");
                         return -1;
                     }
@@ -309,7 +264,7 @@ int main(int, char**)
 
             ImGui::BeginDisabled(!wrote_out_file);
             if (ImGui::Button("Copy recording to clipboard")) {
-                CopyToClipboard(out_file_path.generic_string().c_str());
+                printf("write to clipboard");
             }
             ImGui::EndDisabled();
 
