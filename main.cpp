@@ -170,7 +170,10 @@ int main(int, char**)
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FrameRounding = 1.0f;
+    style.GrabRounding = 1.0f;
+    style.WindowBorderSize = 0.0f;
 
     // give ui elements a 1px border rounding
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.0f);
