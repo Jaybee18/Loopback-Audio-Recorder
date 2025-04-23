@@ -24,6 +24,8 @@
 #include "../libs/emscripten/emscripten_mainloop_stub.h"
 #endif
 
+#define IM_MAX(A, B) (((A) >= (B)) ? (A) : (B))
+
 // Main code
 int main(int, char**)
 {
@@ -128,10 +130,10 @@ int main(int, char**)
     ImFontConfig icons_config;
     icons_config.MergeMode = true;
     icons_config.PixelSnapH = true;
-    icons_config.GlyphMinAdvanceX = 13.0f;
+    icons_config.GlyphMinAdvanceX = 20.0f;
     icons_config.GlyphOffset.y = 6.0f;
     static const ImWchar icons_ranges[] = { ICON_MIN_FAD, ICON_MAX_16_FAD, 0 };
-    io.Fonts->AddFontFromFileTTF( FONT_ICON_FILE_NAME_FAD, 20.0f, &icons_config, icons_ranges );
+    io.Fonts->AddFontFromFileTTF( FONT_ICON_FILE_NAME_FAD, 32.0f, &icons_config, icons_ranges );
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != nullptr);
 
@@ -190,6 +192,82 @@ int main(int, char**)
             ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
             ImGui::Text(ICON_FAD_FFWD "  Fast Forward");
             ImGui::Button(ICON_FAD_FFWD);
+
+            ImTextureID my_tex_id = io.Fonts->TexID;
+            float my_tex_w = (float)io.Fonts->TexWidth;
+            float my_tex_h = (float)io.Fonts->TexHeight;
+            {
+                ImGui::Text("%.0fx%.0f", my_tex_w, my_tex_h);
+                ImVec2 pos = ImGui::GetCursorScreenPos();
+                ImVec2 uv_min = ImVec2(0.0f, 0.0f);                 // Top-left
+                ImVec2 uv_max = ImVec2(1.0f, 1.0f);                 // Lower-right
+                ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, IM_MAX(1.0f, ImGui::GetStyle().ImageBorderSize));
+                ImGui::ImageWithBg(my_tex_id, ImVec2(my_tex_w, my_tex_h), uv_min, uv_max, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                if (ImGui::BeginItemTooltip())
+                {
+                    float region_sz = 32.0f;
+                    float region_x = io.MousePos.x - pos.x - region_sz * 0.5f;
+                    float region_y = io.MousePos.y - pos.y - region_sz * 0.5f;
+                    float zoom = 4.0f;
+                    if (region_x < 0.0f) { region_x = 0.0f; }
+                    else if (region_x > my_tex_w - region_sz) { region_x = my_tex_w - region_sz; }
+                    if (region_y < 0.0f) { region_y = 0.0f; }
+                    else if (region_y > my_tex_h - region_sz) { region_y = my_tex_h - region_sz; }
+                    ImGui::Text("Min: (%.2f, %.2f)", region_x, region_y);
+                    ImGui::Text("Max: (%.2f, %.2f)", region_x + region_sz, region_y + region_sz);
+                    ImVec2 uv0 = ImVec2((region_x) / my_tex_w, (region_y) / my_tex_h);
+                    ImVec2 uv1 = ImVec2((region_x + region_sz) / my_tex_w, (region_y + region_sz) / my_tex_h);
+                    ImGui::ImageWithBg(my_tex_id, ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    ImGui::EndTooltip();
+                }
+                ImGui::PopStyleVar();
+            }
+
+            ImFontAtlas* atlas = io.Fonts;
+            ImFont* font = atlas->Fonts.front(); // only check the first font
+            ImVec2 base_pos = ImGui::GetCursorScreenPos();
+            const float cell_size = font->FontSize * 1;
+            const float cell_spacing = ImGui::GetStyle().ItemSpacing.y;
+            int n = 0;
+            ImVec2 cell_p1(base_pos.x + (n % 16) * (cell_size + cell_spacing), base_pos.y + (n / 16) * (cell_size + cell_spacing));
+            ImVec2 cell_p2(cell_p1.x + cell_size, cell_p1.y + cell_size);
+            int character_value = 61814;
+            const ImFontGlyph* glyph = font->FindGlyphNoFallback((ImWchar)(character_value));
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            draw_list->AddRect(cell_p1, cell_p2, glyph ? IM_COL32(255, 255, 255, 100) : IM_COL32(255, 255, 255, 50));
+            const ImU32 glyph_col = ImGui::GetColorU32(ImGuiCol_Text);
+            font->RenderChar(draw_list, cell_size, cell_p1, glyph_col, (ImWchar)(character_value));
+
+            static float x1 = 0.0f;
+            static float x2 = 0.0f;
+            static float y1 = 1.0f;
+            static float y2 = 1.0f;
+            static float w = 32.0f;
+            static float h = 32.0f;
+            ImGui::ImageButton("test image button", 
+                my_tex_id, 
+                ImVec2(w, h), 
+                ImVec2(x1 / my_tex_w, y1 / my_tex_h), 
+                ImVec2(x2 / my_tex_w, y2 / my_tex_h), 
+                ImVec4(0.f, 0.f, 0.f, 1.f),
+                ImVec4(1.f, 1.f, 1.f, 1.f)
+            );
+            ImGui::ImageButton("test image button2", 
+                my_tex_id, 
+                ImVec2(w, h), 
+                ImVec2(glyph->U0, glyph->V0), 
+                ImVec2(glyph->U1, glyph->V1), 
+                ImVec4(0.f, 0.f, 0.f, 1.f),
+                ImVec4(1.f, 1.f, 1.f, 1.f)
+            );
+
+            ImGui::SliderFloat("x1", &x1, 0.0f, my_tex_w);
+            ImGui::SliderFloat("x2", &x2, 0.0f, my_tex_w);
+            ImGui::SliderFloat("y1", &y1, 0.0f, my_tex_h);
+            ImGui::SliderFloat("y2", &y2, 0.0f, my_tex_h);
+            ImGui::SliderFloat("w", &w, 0.0f, 32.0f);
+            ImGui::SliderFloat("h", &h, 0.0f, 32.0f);
+
             ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &show_another_window);
 
