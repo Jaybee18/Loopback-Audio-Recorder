@@ -100,7 +100,11 @@ int main(int, char**)
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FrameRounding = 2.0f;
+    style.WindowRounding = 5.0f;
+    style.FrameBorderSize = 1.0f;
+    style.GrabRounding = 2.0f;
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
