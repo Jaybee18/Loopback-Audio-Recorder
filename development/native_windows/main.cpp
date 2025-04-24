@@ -1,3 +1,4 @@
+#define MINIAUDIO_IMPLEMENTATION
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
 #define UNICODE
@@ -6,13 +7,80 @@
 #include <iostream>
 #include <winuser.h>
 #include "uxtheme.h"
+#include "miniaudio.h"
+#include <ShlObj.h>
+#include <chrono>
+#include <filesystem>
 
 HWND hwnd;
 bool isRunning;
 WNDCLASSEX windowClass;
 bool isRecording = false;
 
+ma_result result;
+ma_encoder_config encoderConfig;
+ma_encoder encoder;
+ma_device_config deviceConfig;
+ma_device device;
+ma_backend backends[] = {
+	ma_backend_wasapi /* Loopback mode is currently only supported on WASAPI. */
+};
+std::filesystem::path file("out.wav");
+std::filesystem::path out_file_path = std::filesystem::temp_directory_path() / file;
+auto recording_start_timestamp = std::chrono::high_resolution_clock::now();
+auto recording_end_timestamp = std::chrono::high_resolution_clock::now();
+
 #define ID_RECORD_BTN 1
+#define ID_CLIPBOARD_BTN 2
+
+void CopyToClipboard(const char* path) {
+    HGLOBAL hGlobal = GlobalAlloc(GHND, sizeof(DROPFILES) + strlen(path) + 2);
+
+    if (!hGlobal)
+    return;
+
+    DROPFILES* dropfiles = (DROPFILES*)GlobalLock(hGlobal);
+
+    if (!dropfiles) {
+        GlobalFree(hGlobal);
+        return;
+    }
+
+    dropfiles->pFiles = sizeof(DROPFILES);
+    dropfiles->fNC = TRUE;
+    dropfiles->fWide = FALSE;
+
+    memcpy(&dropfiles[1], path, strlen(path));
+
+    GlobalUnlock(hGlobal);
+
+    if (!OpenClipboard(NULL)) {
+        GlobalFree(hGlobal);
+        return;
+    }
+
+    if (!EmptyClipboard()) {
+        GlobalFree(hGlobal);
+        return;
+    }
+
+    if (!SetClipboardData(CF_HDROP, hGlobal)) {
+        GlobalFree(hGlobal);
+        return;
+    }
+
+    GlobalFree(hGlobal);
+
+    CloseClipboard();
+    return;
+}
+
+void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+{
+    ma_encoder_write_pcm_frames((ma_encoder*)pDevice->pUserData, pInput, frameCount, NULL);
+
+    (void)pOutput;
+}
 
 LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -29,14 +97,58 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		isRunning = false;
 		PostQuitMessage(0);
 		return 0;
-		break;
     case WM_COMMAND:
-        if (LOWORD(wParam) == ID_RECORD_BTN) {
+	{
+		switch (LOWORD(wParam))
+		{
+		case ID_RECORD_BTN:
+		{
+			if (!isRecording) {
+				if (ma_encoder_init_file(out_file_path.generic_string().c_str(), &encoderConfig, &encoder) != MA_SUCCESS) {
+					printf("Failed to initialize output file.\n");
+					return -1;
+				}
+
+				deviceConfig = ma_device_config_init(ma_device_type_loopback);
+				deviceConfig.capture.pDeviceID = NULL; /* Use default device for this example. Set this to the ID of a _playback_ device if you want to capture from a specific device. */
+				deviceConfig.capture.format    = encoder.config.format;
+				deviceConfig.capture.channels  = encoder.config.channels;
+				deviceConfig.sampleRate        = encoder.config.sampleRate;
+				deviceConfig.dataCallback      = data_callback;
+				deviceConfig.pUserData         = &encoder;
+
+				result = ma_device_init_ex(backends, sizeof(backends)/sizeof(backends[0]), NULL, &deviceConfig, &device);
+				if (result != MA_SUCCESS) {
+					printf("Failed to initialize loopback device.\n");
+					return -2;
+				}
+
+				result = ma_device_start(&device);
+				if (result != MA_SUCCESS) {
+					ma_device_uninit(&device);
+					printf("Failed to start device.\n");
+					return -3;
+				}
+				recording_start_timestamp = std::chrono::high_resolution_clock::now();
+			} else {
+				ma_device_stop(&device);
+				ma_encoder_uninit(&encoder);
+			}
 			isRecording = !isRecording;
 			HWND hwndButton = GetDlgItem(hwnd, ID_RECORD_BTN);
 			SetWindowTextW(hwndButton, isRecording ? L"STOP RECORDING" : L"START RECORDING");
-        }
+			break;
+		}
+		case ID_CLIPBOARD_BTN:
+		{
+			CopyToClipboard(out_file_path.generic_string().c_str());
+			break;
+		}
+		default:
+			break;
+		}
         break;
+	}
 	default:
 		break;
 	}
@@ -118,6 +230,19 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
         (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
         NULL);      // Pointer not needed.
 
+	HWND hwndButton2 = CreateWindowW( 
+		L"BUTTON",
+		L"COPY TO CLIPBOARD",
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+		10,
+		120,
+		150,
+		100,
+		hwnd,
+		(HMENU)ID_CLIPBOARD_BTN,
+		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
+		NULL);
+
 	return true;
 }
 
@@ -145,7 +270,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
 
-    if (!createWindow(hInstance, 800, 600, 32)) {
+	// setup miniaudio
+    encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 44100);
+	printf(out_file_path.generic_string().c_str());
+
+    if (!createWindow(hInstance, 175, 260, 32)) {
         system("PAUSE");
         printf("Could not create window\n");
         return 1;
