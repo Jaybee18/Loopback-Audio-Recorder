@@ -5,10 +5,12 @@
 #include <windows.h>
 #include <iostream>
 #include <winuser.h>
+#include "uxtheme.h"
 
 HWND hwnd;
 bool isRunning;
 WNDCLASSEX windowClass;
+bool isRecording = false;
 
 #define ID_RECORD_BTN 1
 
@@ -30,7 +32,9 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
     case WM_COMMAND:
         if (LOWORD(wParam) == ID_RECORD_BTN) {
-            MessageBoxA(hwnd, "Some Text", "Notice", MB_OK);
+			isRecording = !isRecording;
+			HWND hwndButton = GetDlgItem(hwnd, ID_RECORD_BTN);
+			SetWindowTextW(hwndButton, isRecording ? L"STOP RECORDING" : L"START RECORDING");
         }
         break;
 	default:
@@ -63,7 +67,7 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 	DWORD      dwExStyle;
 	DWORD      dwStyle;
 	dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
-	dwStyle = WS_OVERLAPPEDWINDOW;
+	dwStyle = WS_OVERLAPPED | WS_SYSMENU | WS_MINIMIZEBOX | WS_CAPTION;
 
     RECT windowRect;
 	windowRect.left = 0;
@@ -88,6 +92,9 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 		NULL,
 		hInstance,
 		NULL);
+	
+	// make window classic themed
+	SetWindowTheme(hwnd, L" ", L" ");
 
 	if(!hwnd)
 	{
@@ -100,40 +107,16 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 
     HWND hwndButton = CreateWindowW( 
         L"BUTTON",  // Predefined class; Unicode assumed 
-        L"OK",      // Button text 
+        L"START RECORDING",      // Button text 
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
         10,         // x position 
         10,         // y position 
-        100,        // Button width
+        150,        // Button width
         100,        // Button height
         hwnd,     // Parent window
         (HMENU)ID_RECORD_BTN,       // No menu.
         (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
         NULL);      // Pointer not needed.
-
-    HWND hBtnRecord = CreateWindowEx(
-        0,
-        L"BUTTON",
-        nullptr,
-        WS_CHILD | WS_VISIBLE |
-        BS_PUSHBUTTON | BS_ICON | BS_CENTER | BS_VCENTER,
-        110,
-        110,
-        100,
-        100,
-        hwnd,
-        (HMENU)2,
-        hInstance,
-        nullptr
-    );
-    HICON hIconRecord = (HICON) LoadImage(
-        hInstance,
-        MAKEINTRESOURCE(101),
-        IMAGE_ICON,
-        32, 32,
-        LR_DEFAULTCOLOR
-    );
-    SendMessage(hBtnRecord, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIconRecord);
 
 	return true;
 }
