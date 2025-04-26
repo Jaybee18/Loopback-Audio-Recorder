@@ -1,6 +1,8 @@
 #define MINIAUDIO_IMPLEMENTATION
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
+#define CINTERFACE
+#define COBJMACROS
 #define UNICODE
 
 #include <windows.h>
@@ -11,6 +13,11 @@
 #include <ShlObj.h>
 #include <chrono>
 #include <filesystem>
+#include "oleidl.h"
+#include "DropSource.h"
+#include <codecvt>
+#include "windowsx.h"
+#include <regex>
 
 HWND hwnd;
 bool isRunning;
@@ -32,6 +39,7 @@ auto recording_end_timestamp = std::chrono::high_resolution_clock::now();
 
 #define ID_RECORD_BTN 1
 #define ID_CLIPBOARD_BTN 2
+#define ID_SAMPLE_DRAG_AREA 3
 
 void CopyToClipboard(const char* path) {
     HGLOBAL hGlobal = GlobalAlloc(GHND, sizeof(DROPFILES) + strlen(path) + 2);
@@ -149,6 +157,36 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
         break;
 	}
+	case WM_LBUTTONDOWN:
+	{
+		POINT ptClick;
+		ptClick.x = GET_X_LPARAM(lParam);
+		ptClick.y = GET_Y_LPARAM(lParam);
+		HWND hwndDragArea = GetDlgItem(hwnd, ID_SAMPLE_DRAG_AREA);
+		HWND hHit = ChildWindowFromPoint(hwnd, ptClick);
+		if (hHit == hwndDragArea) {
+			IDataObject *pObj;
+			IDropSource *pSrc;
+			std::string p = std::regex_replace(out_file_path.generic_string(), std::regex("\\/"), "\\");
+			pObj = (IDataObject*)GetFileUiObject(p.c_str(), IID_IDataObject);
+			if (!pObj)
+				break;
+	
+			pSrc = CreateDropSource();
+			if (!pSrc)
+			{
+				IDataObject_Release(pObj);
+				break;
+			}
+	
+			DWORD dwEffect;
+			DoDragDrop(pObj, pSrc, DROPEFFECT_COPY | DROPEFFECT_LINK, &dwEffect);
+	
+			IDropSource_Release(pSrc);
+			IDataObject_Release(pObj);
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -243,6 +281,26 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
 		NULL);
 
+	HWND hFrame = CreateWindowExW(
+		NULL,
+		L"STATIC",
+		NULL,
+		WS_CHILD | WS_VISIBLE | SS_BLACKFRAME,
+		170, 120, 150, 100,
+		hwnd,
+		(HMENU)ID_SAMPLE_DRAG_AREA,
+		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
+		NULL
+	);
+
+	HRESULT oleResult = OleInitialize(NULL);
+	if(oleResult != S_OK)
+	{
+		std::cout << "Couldn't initialize Ole" << std::endl;
+		return false;
+	}
+	InitCommonControls();
+
 	return true;
 }
 
@@ -274,7 +332,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 44100);
 	printf(out_file_path.generic_string().c_str());
 
-    if (!createWindow(hInstance, 175, 260, 32)) {
+    if (!createWindow(hInstance, 335, 260, 32)) {
         system("PAUSE");
         printf("Could not create window\n");
         return 1;
