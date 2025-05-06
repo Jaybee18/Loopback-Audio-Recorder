@@ -1,3 +1,8 @@
+/*
+    A file called "myicon.ico" should be present in the same directory as the .exe file.
+    Compile with: g++ main.cpp
+*/
+
 #ifndef UNICODE
 #define UNICODE
 #endif
@@ -21,35 +26,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     RegisterClass(&wc);
 
     // Create the window.
-
     HWND hwnd = CreateWindowEx(
-        0,                              // Optional window styles.
-        CLASS_NAME,                     // Window class
-        L"Learn to Program Windows",    // Window text
-        WS_OVERLAPPEDWINDOW,            // Window style
-
-        // Size and position
+        0,
+        CLASS_NAME,
+        L"Icon Button Example",
+        WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-
-        NULL,       // Parent window    
-        NULL,       // Menu
-        hInstance,  // Instance handle
-        NULL        // Additional application data
-        );
-    
-    HWND hwndButton = CreateWindowW(
-        L"BUTTON",  // Predefined class; Unicode assumed 
-        L"",      // Button text 
-        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_ICON,  // Styles 
-        10,         // x position 
-        10,         // y position 
-        50,        // Button width
-        50,        // Button height
-        hwnd,     // Parent window
-        (HMENU)102,       // No menu.
         NULL, 
-    nullptr);      // Pointer not needed.
-    HICON hImg = (HICON)LoadImageW(NULL, L"AProject.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+        NULL,
+        hInstance,
+        NULL
+    );
+    
+    HWND hwndButton = CreateWindow(
+        L"BUTTON",
+        L"",
+        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_ICON,
+        10,
+        10,
+        50,
+        50,
+        hwnd,
+        (HMENU)102,
+        NULL,
+        nullptr
+    );
+    HICON hImg = (HICON)LoadImage(NULL, L"myicon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
     SendMessageW(hwndButton, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg);
 
     if (hwnd == NULL)
