@@ -47,12 +47,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         50,
         50,
         hwnd,
-        (HMENU)102,
+        (HMENU)101,
         NULL,
         nullptr
     );
     HICON hImg = (HICON)LoadImage(NULL, L"myicon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
-    SendMessageW(hwndButton, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg);
+    SendMessage(hwndButton, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg);
 
     if (hwnd == NULL)
     {
