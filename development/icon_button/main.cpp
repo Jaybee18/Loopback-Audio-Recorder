@@ -4,8 +4,6 @@
 
 #include <windows.h>
 #include <CommCtrl.h>
-#include <iostream>
-#include <string>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
