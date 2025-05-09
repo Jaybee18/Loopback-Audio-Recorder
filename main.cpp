@@ -255,7 +255,8 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 		NULL,
 		NULL,
 		hInstance,
-		NULL);
+		NULL
+	);
 	
 	// make window classic themed
 	SetWindowTheme(hwnd, L" ", L" ");
@@ -270,17 +271,18 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 	UpdateWindow(hwnd);
 
     HWND hwndButton = CreateWindowW( 
-        L"BUTTON",  // Predefined class; Unicode assumed 
-        L"",      // Button text 
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,  // Styles 
-        10,         // x position 
-        10,         // y position 
-        30,        // Button width
-        30,        // Button height
-        hwnd,     // Parent window
-        (HMENU)ID_RECORD_BTN,       // No menu.
+        L"BUTTON",
+        L"",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,
+        10,
+        10,
+        30,
+        30,
+        hwnd,
+        (HMENU)ID_RECORD_BTN,
         (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
-        NULL);      // Pointer not needed.
+        NULL
+	);
 	HICON hImg = (HICON)LoadImage(NULL, L"resources/record.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_LOADFROMFILE | LR_DEFAULTSIZE);
     SendMessage(hwndButton, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg);
 
