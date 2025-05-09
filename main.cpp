@@ -360,12 +360,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
     LPSTR cmdLine,
     int cmdShow)
 {
-    AllocConsole();
-    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTitleA("L.A.R.");
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-
 	// setup miniaudio
     encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 44100);
 	printf(out_file_path.generic_string().c_str());
