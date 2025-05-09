@@ -19,6 +19,7 @@
 #include <regex>
 #include "Error.h"
 #include "Clipboard.h"
+#include "resource.h"
 
 HWND hwnd;
 bool isRunning;
@@ -270,7 +271,7 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 	ShowWindow(hwnd, SW_SHOW);
 	UpdateWindow(hwnd);
 
-    HWND hwndButton = CreateWindowW( 
+    HWND recordBtn = CreateWindowW( 
         L"BUTTON",
         L"",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,
@@ -283,10 +284,10 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
         (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
         NULL
 	);
-	HICON hImg = (HICON)LoadImage(NULL, L"resources/record.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_LOADFROMFILE | LR_DEFAULTSIZE);
-    SendMessage(hwndButton, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg);
+	HICON recordIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_RECORD_ICON));
+    SendMessage(recordBtn, BM_SETIMAGE, IMAGE_ICON, (LPARAM) recordIcon);
 
-	HWND hwndButton2 = CreateWindowW( 
+	HWND copyBtn = CreateWindowW( 
 		L"BUTTON",
 		L"",
 		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,
@@ -299,10 +300,10 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
 		NULL
 	);
-	HICON hImg2 = (HICON)LoadImage(NULL, L"resources/clipboard.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
-    SendMessage(hwndButton2, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg2);
+	HICON copyIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_COPY_ICON));
+    SendMessage(copyBtn, BM_SETIMAGE, IMAGE_ICON, (LPARAM) copyIcon);
 
-	HWND hwndButton3 = CreateWindowW( 
+	HWND playBtn = CreateWindowW( 
 		L"BUTTON",
 		L"",
 		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,
@@ -315,8 +316,8 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
 		NULL
 	);
-	HICON hImg3 = (HICON)LoadImage(NULL, L"resources/play.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
-    SendMessage(hwndButton3, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg3);
+	HICON playIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_PLAY_ICON));
+    SendMessage(playBtn, BM_SETIMAGE, IMAGE_ICON, (LPARAM) playIcon);
 
 	HWND hFrame = CreateWindowExW(
 		NULL,

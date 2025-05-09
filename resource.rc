@@ -1,0 +1,6 @@
+#include "resource.h"
+
+IDI_RECORD_ICON ICON "resources/record.ico"
+IDI_RECORD_STOP_ICON ICON "resources/square.ico"
+IDI_COPY_ICON ICON "resources/clipboard.ico"
+IDI_PLAY_ICON ICON "resources/play.ico"
