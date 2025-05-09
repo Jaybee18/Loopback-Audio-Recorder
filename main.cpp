@@ -259,8 +259,10 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 		NULL
 	);
 	
+#ifndef NEW_LOOK
 	// make window classic themed
 	SetWindowTheme(hwnd, L" ", L" ");
+#endif
 
 	if(!hwnd)
 	{
