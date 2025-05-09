@@ -18,6 +18,7 @@
 #include <codecvt>
 #include "windowsx.h"
 #include <regex>
+#include "Error.h"
 
 HWND hwnd;
 bool isRunning;
@@ -27,6 +28,7 @@ bool isRecording = false;
 ma_result result;
 ma_encoder_config encoderConfig;
 ma_encoder encoder;
+ma_decoder decoder;
 ma_device_config deviceConfig;
 ma_device device;
 ma_backend backends[] = {
@@ -40,6 +42,7 @@ auto recording_end_timestamp = std::chrono::high_resolution_clock::now();
 #define ID_RECORD_BTN 1
 #define ID_CLIPBOARD_BTN 2
 #define ID_SAMPLE_DRAG_AREA 3
+#define ID_PLAY_BTN 4
 
 void CopyToClipboard(const char* path) {
     HGLOBAL hGlobal = GlobalAlloc(GHND, sizeof(DROPFILES) + strlen(path) + 2);
@@ -90,6 +93,18 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     (void)pOutput;
 }
 
+void play_data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+{
+    ma_decoder* pDecoder = (ma_decoder*)pDevice->pUserData;
+    if (pDecoder == NULL) {
+        return;
+    }
+
+    ma_decoder_read_pcm_frames(pDecoder, pOutput, frameCount, NULL);
+
+    (void)pInput;
+}
+
 LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
@@ -103,6 +118,7 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 	case WM_QUIT:
 		isRunning = false;
+		ma_decoder_uninit(&decoder);
 		PostQuitMessage(0);
 		return 0;
     case WM_COMMAND:
@@ -112,6 +128,12 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case ID_RECORD_BTN:
 		{
 			if (!isRecording) {
+				// change record button icon to stop record icon
+				HWND hwndButton2 = GetDlgItem(hwnd, ID_RECORD_BTN);
+				HICON hImg2 = (HICON)LoadImage(NULL, L"resources/square.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+    			SendMessage(hwndButton2, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg2);
+
+				// recording stuff
 				if (ma_encoder_init_file(out_file_path.generic_string().c_str(), &encoderConfig, &encoder) != MA_SUCCESS) {
 					printf("Failed to initialize output file.\n");
 					return -1;
@@ -139,6 +161,11 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				recording_start_timestamp = std::chrono::high_resolution_clock::now();
 			} else {
+				// change stop record button icon to start record icon
+				HWND hwndButton2 = GetDlgItem(hwnd, ID_RECORD_BTN);
+				HICON hImg2 = (HICON)LoadImage(NULL, L"resources/record.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+    			SendMessage(hwndButton2, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg2);
+
 				ma_device_stop(&device);
 				ma_encoder_uninit(&encoder);
 			}
@@ -150,6 +177,35 @@ LRESULT CALLBACK wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case ID_CLIPBOARD_BTN:
 		{
 			CopyToClipboard(out_file_path.generic_string().c_str());
+			break;
+		}
+		case ID_PLAY_BTN:
+		{
+			result = ma_decoder_init_file(out_file_path.generic_string().c_str(), NULL, &decoder);
+			if (result != MA_SUCCESS) {
+				printf("Could not load file");
+				return -2;
+			}
+
+			deviceConfig = ma_device_config_init(ma_device_type_playback);
+			deviceConfig.playback.format   = decoder.outputFormat;
+			deviceConfig.playback.channels = decoder.outputChannels;
+			deviceConfig.sampleRate        = decoder.outputSampleRate;
+			deviceConfig.dataCallback      = play_data_callback;
+			deviceConfig.pUserData         = &decoder;
+
+			if (ma_device_init(NULL, &deviceConfig, &device) != MA_SUCCESS) {
+				printf("Failed to open playback device.\n");
+				ma_decoder_uninit(&decoder);
+				return -3;
+			}
+
+			if (ma_device_start(&device) != MA_SUCCESS) {
+				printf("Failed to start playback device.\n");
+				ma_device_uninit(&device);
+				ma_decoder_uninit(&decoder);
+				return -4;
+			}
 			break;
 		}
 		default:
@@ -232,7 +288,7 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 
     hwnd = CreateWindowEx(0,
 		windowClass.lpszClassName,
-		L"Minimal Drag and Drop Application for Windows",
+		L"LARecorder",
 		dwStyle | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -257,36 +313,57 @@ bool createWindow(HINSTANCE hInstance, int width, int height, int bpp) {
 
     HWND hwndButton = CreateWindowW( 
         L"BUTTON",  // Predefined class; Unicode assumed 
-        L"START RECORDING",      // Button text 
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+        L"",      // Button text 
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,  // Styles 
         10,         // x position 
         10,         // y position 
-        150,        // Button width
-        100,        // Button height
+        30,        // Button width
+        30,        // Button height
         hwnd,     // Parent window
         (HMENU)ID_RECORD_BTN,       // No menu.
         (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
         NULL);      // Pointer not needed.
+	HICON hImg = (HICON)LoadImage(NULL, L"resources/record.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_LOADFROMFILE | LR_DEFAULTSIZE);
+    SendMessage(hwndButton, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg);
 
 	HWND hwndButton2 = CreateWindowW( 
 		L"BUTTON",
-		L"COPY TO CLIPBOARD",
-		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+		L"",
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,
+		50,
 		10,
-		120,
-		150,
-		100,
+		30,
+		30,
 		hwnd,
 		(HMENU)ID_CLIPBOARD_BTN,
 		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
-		NULL);
+		NULL
+	);
+	HICON hImg2 = (HICON)LoadImage(NULL, L"resources/clipboard.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+    SendMessage(hwndButton2, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg2);
+
+	HWND hwndButton3 = CreateWindowW( 
+		L"BUTTON",
+		L"",
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | BS_ICON,
+		90,
+		10,
+		30,
+		30,
+		hwnd,
+		(HMENU)ID_PLAY_BTN,
+		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 
+		NULL
+	);
+	HICON hImg3 = (HICON)LoadImage(NULL, L"resources/play.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+    SendMessage(hwndButton3, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hImg3);
 
 	HWND hFrame = CreateWindowExW(
 		NULL,
 		L"STATIC",
 		NULL,
 		WS_CHILD | WS_VISIBLE | SS_BLACKFRAME,
-		170, 120, 150, 100,
+		130, 10, 30, 30,
 		hwnd,
 		(HMENU)ID_SAMPLE_DRAG_AREA,
 		(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
@@ -324,7 +401,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 {
     AllocConsole();
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTitleA("Minimal Drag and Drop Application for Windows: Output Console");
+    SetConsoleTitleA("L.A.R.");
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
 
@@ -332,7 +409,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 44100);
 	printf(out_file_path.generic_string().c_str());
 
-    if (!createWindow(hInstance, 335, 260, 32)) {
+    if (!createWindow(hInstance, 176, 50 + 29, 32)) {
         system("PAUSE");
         printf("Could not create window\n");
         return 1;
