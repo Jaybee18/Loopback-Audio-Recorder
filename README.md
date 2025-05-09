@@ -5,9 +5,9 @@ Uses loopback to record the output audio from the current audio output device. S
 can directly be copied to the clipboard to paste into a DAW or the filesystem or they can be
 dragged from the application to wherever you want.
 
-![image](https://github.com/user-attachments/assets/7e56647e-86d6-479f-8260-4c3a71fa6e82)
+![image](https://github.com/user-attachments/assets/07f54624-5441-4eb8-ac6c-2944372fdb30)
 
-Currently only works on windows.
+Only works on windows.
 
 ## Build
 To build just execute
