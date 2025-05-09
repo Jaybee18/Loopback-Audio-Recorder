@@ -15,3 +15,9 @@ To build just execute
 make
 ```
 This should work on every standard windows installation.
+
+## TODO
+
+- package resources into resource files with application
+- clean up code
+    - use better wndproc event handling
