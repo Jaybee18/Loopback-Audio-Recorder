@@ -10,7 +10,6 @@
 #include <winuser.h>
 #include "uxtheme.h"
 #include "miniaudio.h"
-#include <ShlObj.h>
 #include <chrono>
 #include <filesystem>
 #include "oleidl.h"
@@ -19,6 +18,7 @@
 #include "windowsx.h"
 #include <regex>
 #include "Error.h"
+#include "Clipboard.h"
 
 HWND hwnd;
 bool isRunning;
@@ -43,48 +43,6 @@ auto recording_end_timestamp = std::chrono::high_resolution_clock::now();
 #define ID_CLIPBOARD_BTN 2
 #define ID_SAMPLE_DRAG_AREA 3
 #define ID_PLAY_BTN 4
-
-void CopyToClipboard(const char* path) {
-    HGLOBAL hGlobal = GlobalAlloc(GHND, sizeof(DROPFILES) + strlen(path) + 2);
-
-    if (!hGlobal)
-    return;
-
-    DROPFILES* dropfiles = (DROPFILES*)GlobalLock(hGlobal);
-
-    if (!dropfiles) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    dropfiles->pFiles = sizeof(DROPFILES);
-    dropfiles->fNC = TRUE;
-    dropfiles->fWide = FALSE;
-
-    memcpy(&dropfiles[1], path, strlen(path));
-
-    GlobalUnlock(hGlobal);
-
-    if (!OpenClipboard(NULL)) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    if (!EmptyClipboard()) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    if (!SetClipboardData(CF_HDROP, hGlobal)) {
-        GlobalFree(hGlobal);
-        return;
-    }
-
-    GlobalFree(hGlobal);
-
-    CloseClipboard();
-    return;
-}
 
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
