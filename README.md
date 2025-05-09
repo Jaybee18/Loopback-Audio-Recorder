@@ -7,6 +7,8 @@ dragged from the application to wherever you want.
 
 ![image](https://github.com/user-attachments/assets/07f54624-5441-4eb8-ac6c-2944372fdb30)
 
+![image](https://github.com/user-attachments/assets/c3db770c-c867-4847-a075-ca6807a60054)
+
 Only works on windows.
 
 ## Build
@@ -18,6 +20,5 @@ This should work on every standard windows installation.
 
 ## TODO
 
-- package resources into resource files with application
 - clean up code
     - use better wndproc event handling
