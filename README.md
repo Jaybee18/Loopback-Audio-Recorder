@@ -22,3 +22,5 @@ This should work on every standard windows installation.
 
 - clean up code
     - use better wndproc event handling
+- timer for current recording length
+- normalize button
